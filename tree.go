@@ -5,10 +5,8 @@ import (
 	"time"
 )
 
-var _ Treap = &SimpleTreap{}
-
-// SimpleTreap is the most simple implementation of treap
-type SimpleTreap struct {
+// Tree is the most simple implementation of treap
+type Tree struct {
 	root *Node
 	cfg  *Config
 	size int
@@ -16,23 +14,23 @@ type SimpleTreap struct {
 
 /** Public methods */
 
-// NewSimpleTreap returns SimpleTreap object with nil root
-func NewSimpleTreap(cfg *Config) *SimpleTreap {
+// NewTree returns Tree object with nil root
+func NewTree(cfg *Config) *Tree {
 	rand.Seed(time.Now().UTC().UnixNano())
-	return &SimpleTreap{
+	return &Tree{
 		cfg:  cfg,
 		size: 0,
 	}
 }
 
-// Add adds values to the Treap
-func (st *SimpleTreap) Add(x ...int) {
+// Insert adds values to the Treap
+func (st *Tree) Insert(x ...int) {
 	for _, el := range x {
 		if !st.cfg.AllowDuplicates && st.find(st.root, el) {
 			continue
 		}
 		newNode := NewNode(el)
-		l, r := st.split(st.root, &el)
+		l, r := st.split(st.root, el)
 		st.root = st.merge(l, newNode)
 		st.root = st.merge(st.root, r)
 		st.size++
@@ -40,17 +38,36 @@ func (st *SimpleTreap) Add(x ...int) {
 }
 
 // Find finds if value is present in the Treap
-func (st *SimpleTreap) Find(x int) bool {
+func (st *Tree) Find(x int) bool {
 	return st.find(st.root, x)
 }
 
 // Slice returns sorted slice by InOrder traversing
-func (st *SimpleTreap) Slice() []int {
+func (st *Tree) Slice() []int {
 	result := make([]int, 0, st.size)
-	st.inOrderTrv(st.root, func(cur *Node) {
+	st.inOrder(st.root, func(cur *Node) {
 		result = append(result, cur.key)
 	})
 	return result
+}
+
+// Remove deletes node with key == x from the Treap
+// if multiple such elements exist only one is deleted
+func (st *Tree) Remove(x int) {
+	l, r := st.split(st.root, x-1)
+	xl, xr := st.split(r, x)
+	if xl != nil {
+		l = st.merge(l, xl.left)
+		xr = st.merge(xl.right, xr)
+	}
+	st.root = st.merge(l, xr)
+}
+
+// RemoveAll deletes all node with key == x from the Treap
+func (st *Tree) RemoveAll(x int) {
+	l, r := st.split(st.root, x-1)
+	_, xr := st.split(r, x)
+	st.root = st.merge(l, xr)
 }
 
 /** Private methods */
@@ -58,11 +75,11 @@ func (st *SimpleTreap) Slice() []int {
 // split recursively splits the treap with a given root into two Treaps l, r based on key
 // l - has all node keys less or equal to key
 // r - has all node keys strictly greater than key
-func (st *SimpleTreap) split(root *Node, key *int) (l *Node, r *Node) {
+func (st *Tree) split(root *Node, key int) (l *Node, r *Node) {
 	if root == nil {
 		return
 	}
-	if root.key > *key {
+	if root.key > key {
 		subL, subR := st.split(root.left, key)
 		subR.SetParent(root)
 		root.left = subR
@@ -77,7 +94,7 @@ func (st *SimpleTreap) split(root *Node, key *int) (l *Node, r *Node) {
 // merge recursively merges two Treaps into one, maintaining Treap property
 // produces new root
 // it is required that every key in one of the Treaps is less than any key in another Treap
-func (st *SimpleTreap) merge(l, r *Node) (root *Node) {
+func (st *Tree) merge(l, r *Node) (root *Node) {
 	if l == nil {
 		return r
 	}
@@ -99,16 +116,16 @@ func (st *SimpleTreap) merge(l, r *Node) (root *Node) {
 	return r
 }
 
-func (st *SimpleTreap) inOrderTrv(cur *Node, f func(cur *Node)) {
+func (st *Tree) inOrder(cur *Node, f func(cur *Node)) {
 	if cur == nil {
 		return
 	}
-	st.inOrderTrv(cur.left, f)
+	st.inOrder(cur.left, f)
 	f(cur)
-	st.inOrderTrv(cur.right, f)
+	st.inOrder(cur.right, f)
 }
 
-func (st *SimpleTreap) find(cur *Node, x int) bool {
+func (st *Tree) find(cur *Node, x int) bool {
 	if cur == nil {
 		return false
 	}
